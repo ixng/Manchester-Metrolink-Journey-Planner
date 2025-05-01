@@ -43,7 +43,7 @@ public class GraphList {
             startNode = headNode;
             startNode.edges.add(new Edge(startNode, colour, time));
             addNode(toStation);
-            endNode= headNode;
+            endNode = headNode;
             endNode.edges.add(new Edge(endNode, colour, time));
         }
 
@@ -62,8 +62,10 @@ public class GraphList {
         }
 
     public boolean stationExists(String station){
-        
-        return findNode(station) != null;
+        boolean exists = true;
+        if(findNode(station) == null)
+        exists = false;
+        return exists;
     }
     public void print(){
         GraphNode station = headNode;
@@ -82,13 +84,17 @@ public class GraphList {
             line = reader.readLine();//skips the header
             while ((line = reader.readLine()) != null){
                 String[] section = line.split(",");
-                if(section.length <2)continue;
+                
 
                 String from = section[0].trim();
                 String to = section[1].trim();
                 String colour = section[2].trim();
                 Float time = Float.parseFloat(section[3].trim());
-
+                //System.out.println("Adding station: " + from); syntax
+                //System.out.println("Adding station: " + to); syntax
+                
+                addNode(from);
+                addNode(to);
                 addEdge(from, to, colour, time);
                 addEdge(to, from, colour, time); //allows graph to be undirected 
 
