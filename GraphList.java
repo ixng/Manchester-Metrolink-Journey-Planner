@@ -25,17 +25,17 @@ public class GraphList {
         }
     public class Edge{
         GraphNode destination;
-        Double time;
+        Float time;
         String colour;
 
-        public Edge(GraphNode destination, String colour,Double time){
+        public Edge(GraphNode destination, String colour,Float time){
             this.destination = destination;
             this.time = time;
             this.colour = colour;
         }
     }
 
-    public void addEdge(String fromStation, String toStation, String colour, Double time){
+    public void addEdge(String fromStation, String toStation, String colour, Float time){
         GraphNode startNode = findNode(fromStation);
         GraphNode endNode = findNode(toStation);
         if (startNode == null && endNode == null){
@@ -60,29 +60,34 @@ public class GraphList {
                 node = node.next;
             }return null;
         }
+
+    public boolean stationExists(String station){
+        
+        return findNode(station) != null;
+    }
     public void print(){
         GraphNode station = headNode;
         while(station!= null){
-            System.out.print("[ " + station.id);
+            System.out.print("[ " + station.id + " , "+ station.next.id + " , ");
             for(Edge info: station.edges){
-                System.out.print(info.destination + " " + info.colour + " " + info.time);
+                System.out.print( info.colour + " , " + info.time);
             }
             System.out.println(" ]");
             station = station.next;
         }
     }
     public void loadFromFile(String filename){
-        try(BufferedReader br = new BufferedReader(new FileReader(filename))){
+        try(BufferedReader reader = new BufferedReader(new FileReader(filename))){
             String line;
-
-            while ((line = br.readLine()) != null){
+            line = reader.readLine();//skips the header
+            while ((line = reader.readLine()) != null){
                 String[] section = line.split(",");
                 if(section.length <2)continue;
 
                 String from = section[0].trim();
                 String to = section[1].trim();
                 String colour = section[2].trim();
-                Double time = Double.parseDouble(section[3].trim());
+                Float time = Float.parseFloat(section[3].trim());
 
                 addEdge(from, to, colour, time);
                 addEdge(to, from, colour, time); //allows graph to be undirected 
