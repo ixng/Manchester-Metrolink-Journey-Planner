@@ -22,7 +22,8 @@ public class GraphList {
         GraphNode node = new GraphNode(station);
         node.next = headNode;
         headNode = node;
-        }
+    }
+
     public class Edge{
         GraphNode destination;
         Float time;
@@ -51,22 +52,16 @@ public class GraphList {
         
         
     }
-
-
+    
     private GraphNode findNode(String station){
         GraphNode node = headNode;
             while(node != null){
-                if (node.id == station) return node;
+                if (node.id.equals(station)) return node;
                 node = node.next;
             }return null;
         }
 
-    public boolean stationExists(String station){
-        boolean exists = true;
-        if(findNode(station) == null)
-        exists = false;
-        return exists;
-    }
+    
     public void print(){
         GraphNode station = headNode;
         while(station!= null){
@@ -90,8 +85,8 @@ public class GraphList {
                 String to = section[1].trim();
                 String colour = section[2].trim();
                 Float time = Float.parseFloat(section[3].trim());
-                //System.out.println("Adding station: " + from); syntax
-                //System.out.println("Adding station: " + to); syntax
+                System.out.println("Adding station: " + from); //syntax
+                System.out.println("Adding station: " + to); //syntax
                 
                 addNode(from);
                 addNode(to);
@@ -103,4 +98,13 @@ public class GraphList {
             System.err.println("Error reading file:" + END.getMessage());
         }
     }
+    
+    public boolean stationExists(String station){
+        boolean exists = true;
+        if(findNode(station).equals(null))exists = false;
+        
+        return exists;
+    }
+
+    
 }
