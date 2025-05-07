@@ -4,19 +4,32 @@ import java.io.IOException;
 import java.util.*;
 public class GraphList {
     GraphNode headNode;
-
-    public class GraphNode{
+    
+    public class GraphNode implements Comparable<GraphNode>{
+        
         String id;
         LinkedHashSet<Edge> edges;
         GraphNode next;
+        Float distance = Float.MAX_VALUE;
+        List<Node> shortestPath = new LinkedList<>();
+        Map<Node, Float> adjacentNodes = new HashMap<>();
+        
         public GraphNode(String station){
             this.id = station;
             this.edges = new LinkedHashSet<>();
             
             }
+        
+        public void addAdjacentNode(GraphNode node, Float distance){
+                adjacentNodes.put(node, distance);
+            }
+        @Override
+        public int compareTo(GraphNode endOfEdge){
+                return Float.compare(endOfEdge.distance, this.distance );
+            }
     }
     public GraphList(){}
-
+    
     public void addNode(String station){
         GraphNode node = new GraphNode(station);
         node.next = headNode;
@@ -34,7 +47,12 @@ public class GraphList {
             this.colour = colour;
         }
     }
-
+    
+    @Override
+    public float compareTo(Edge endOfEdge){
+        return Float.compare(endOfEdge.time, this.distance );
+    }
+    
     public void addEdge(String fromStation, String toStation, String colour, Float time){
         GraphNode startNode = findNode(fromStation);
         GraphNode endNode = findNode(toStation);
@@ -46,10 +64,6 @@ public class GraphList {
             endNode = headNode;
             endNode.edges.add(new Edge(endNode, colour, time));
         }
-
-        
-        
-        
     }
     
     private GraphNode findNode(String station){
@@ -58,7 +72,14 @@ public class GraphList {
                 if (node.id.equals(station)) return node;
                 node = node.next;
             }return null;
-        }
+    }
+
+    public boolean stationExists(String station){
+        boolean exists = true;
+        if(findNode(station).equals(null))exists = false;
+            
+        return exists;
+    }
 
     
     public void print(){
@@ -72,6 +93,7 @@ public class GraphList {
             station = station.next;
         }
     }
+    
     public void loadFromFile(String filename){
         try(BufferedReader reader = new BufferedReader(new FileReader(filename))){
             String line;
@@ -98,12 +120,7 @@ public class GraphList {
         }
     }
     
-    public boolean stationExists(String station){
-        boolean exists = true;
-        if(findNode(station).equals(null))exists = false;
-        
-        return exists;
-    }
+    
 
     //public GraphNode[] getNeighbours(String station){
         //GraphNode node = findNode(station);
@@ -112,66 +129,13 @@ public class GraphList {
         //}
         
         //return neighbours;
-    
-    
-    
-    public Edge findEdge(String from, String to){
-        GraphNode fromNode = findNode(from);
-        if(fromNode == null)return null;
 
-        for(Edge edge: fromNode.edges){
-            if (edge.destination.id.equals(to))return edge;
-            }
-        return null;
+    public void calculateShortestPath(GraphNode start){
+        start.distance = 0f;
+        Set<GraphNode> settledNodes = new HashSet<>();
     }
-    //public void neighbourList(String station){
-       // GraphNode[] list = getNeighbours(station);
-       // for (int i = 1; i<10;i++){
-       // System.out.println("Neighbour:" + list[i]);}
-        
-    //}
-    
-    public List<String> Dijkstas(String startStation, String endStation, Float time){
-        Map<GraphNode,Float> distance = new HashMap<>();
-        Map<GraphNode,GraphNode> previous = new HashMap<>();
-        Set<GraphNode> visited = new HashSet<>();
-        PriorityQueue<GraphNode> queue = new PriorityQueue<>(Comparator.comparing(distance::get));
-        
-        GraphNode startNode = findNode(startStation);
-        GraphNode endNode = findNode(endStation);
 
-        GraphNode node = headNode;
-        while(node != null){
-            distance.put(node, Float.MAX_VALUE);
-            node = node.next;
-        }
-        distance.put(startNode, 0f);
-        queue.add(startNode);
-
-        while(!queue.isEmpty()){
-            GraphNode currentNode = queue.poll();
+         
             
-            if(!visited.add(currentNode))continue;
-            if(currentNode.equals(endNode))break;
-
-            for(Edge edge : currentNode.edges){
-                GraphNode neighbour = edge.destination;
-                float totalDist = distance.get(currentNode) + edge.time;
-                if(totalDist < distance.get(neighbour)){
-                    distance.put(neighbour, totalDist);
-                    previous.put(neighbour, currentNode);
-                    queue.add(neighbour);
-                }
-            }
-        }
-        List<String> path = new LinkedList<>();
-        for (GraphNode at = endNode; at != null; at = previous.get(at)){
-            path.add(0, at.id);
-        }
-        if (path.isEmpty() || !path.get(0).equals(startStation)){
-            System.out.println("No path found");
-            return Collections.emptyList();
-        }
-        return path;
-    }
+         
 }
