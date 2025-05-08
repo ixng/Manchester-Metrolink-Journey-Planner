@@ -2,11 +2,15 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
 public class GraphList {
     GraphNode headNode;
     private GraphNode[] verticies;
     private int numOfVertices;
     private int maxNum;
+    private String[] coloursOfVertex;
+    private List<String> colours = new ArrayList<>();
     public class GraphNode implements Comparable<GraphNode>{
         
         String id;
@@ -36,6 +40,7 @@ public class GraphList {
         maxNum = maximum;
         verticies = new GraphNode[maxNum];
         numOfVertices = 0;
+        coloursOfVertex = new String[maxNum];
     }
     
     public void addNode(String station){
@@ -43,7 +48,10 @@ public class GraphList {
         node.next = headNode;
         headNode = node;
     }
+    public void addColour(String colour){
+        colours.add(colour);
 
+    }
     public class Edge implements Comparator<Edge>,  Comparable<Edge>{
         GraphNode destination;
         Float time;
@@ -92,7 +100,13 @@ public class GraphList {
                 node = node.next;
             }return null;
     }
-
+    private String findColour(String colour){
+        
+        for(String lines : colours){
+            if(lines.equals(colour))return colour;
+         }
+         return null;   
+    }
     public boolean stationExists(String station){
         boolean exists = true;
         if(findNode(station) == null){exists = false;};
@@ -142,13 +156,15 @@ public class GraphList {
                 Float time = Float.parseFloat(row[3].trim());
                 System.out.println("Adding station: " + from); //syntax
                 System.out.println("Adding station: " + to); //syntax
-                
+                addColour(colour);
                 addNode(from);
                 addNode(to);
                 addEdge(from, to, colour, time);
                 addEdge(to, from, colour, time); //allows graph to be undirected 
                 verticies[numOfVertices] = findNode(from);
-                System.out.println(verticies[numOfVertices].id);
+                coloursOfVertex[numOfVertices] = findColour(colour);
+                System.out.println(coloursOfVertex[numOfVertices]); //syntax
+                System.out.println(verticies[numOfVertices].id); //syntax
                 numOfVertices++;
                 
             }
@@ -208,15 +224,31 @@ public class GraphList {
         }
     }
     
+    private int indexOf(String station){
+
+        for(int i = 0; i < numOfVertices; i++){
+            if(verticies[i] != null && verticies[i].id.toLowerCase().equals(station.toLowerCase())){
+                return i; //returns the index of the vertex with the same id
+            }
+        }
+        return -1;  // returning -1 means the station is not in the array
+    }
     
     
-    
-        public void DijkstrasAlgorithm(String start){
+    public void DijkstrasAlgorithm(String start){
             int[] pathCost = new int[numOfVertices];
             boolean[] finalisedSet = new boolean[numOfVertices];
             int numFinalised = 0;
-
-            Float
+        
+            int station = indexOf(start);
+            if(station == -1)return;
+            for(int i = 0; i<numOfVertices; i ++){
+                finalisedSet[i]= false;
+                pathCost[i]= Integer.MAX_VALUE;
+            }
+            
+            PriorityQueue<Edge> foo = new PriorityQueue<Edge>();
+            foo.add(new Edge(start, null, 0f))
         }   
     
     }
