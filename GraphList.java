@@ -2,15 +2,14 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
-import java.util.List;
-import java.util.ArrayList;
 public class GraphList {
-    GraphNode headNode;
+    private GraphNode headNode;
     private GraphNode[] verticies;
     private int numOfVertices;
     private int maxNum;
     private String[] coloursOfVertex;
     private List<String> colours = new ArrayList<>();
+    private GraphNode parent; //Pointer to parent Node
     public class GraphNode implements Comparable<GraphNode>{
         
         String id;
@@ -31,7 +30,7 @@ public class GraphList {
             }
         @Override
         public int compareTo(GraphNode endOfEdge){
-                return Float.compare(endOfEdge.distance, this.distance );
+                return Float.compare(endOfEdge.distance, this.distance);
             }
     }
     public GraphList(){
@@ -56,11 +55,12 @@ public class GraphList {
         GraphNode destination;
         Float time;
         String colour;
-
-        public Edge(GraphNode destination, String colour,Float time){
+        int toIndex;
+        private Edge(GraphNode destination, String colour,Float time, int toIndex){
             this.destination = destination;
             this.time = time;
             this.colour = colour;
+            this.toIndex = toIndex;
         }
 
         @Override
@@ -90,9 +90,11 @@ public class GraphList {
             addNode(toStation);
             endNode = headNode;
             endNode.edges.add(new Edge(endNode, colour, time));
+            if(stationExists(toStation) == true)
         }
+        
     }
-    
+
     private GraphNode findNode(String station){
         GraphNode node = headNode;
             while(node != null){
@@ -154,8 +156,13 @@ public class GraphList {
                 String to = row[1].trim();
                 String colour = row[2].trim();
                 Float time = Float.parseFloat(row[3].trim());
-                System.out.println("Adding station: " + from); //syntax
-                System.out.println("Adding station: " + to); //syntax
+                if(stationExists(from) == false || stationExists(to) == false){
+                    numOfVertices++;}
+                
+                
+                
+                System.out.println("Adding station: " + from); 
+                System.out.println("Adding station: " + to); 
                 addColour(colour);
                 addNode(from);
                 addNode(to);
@@ -165,7 +172,8 @@ public class GraphList {
                 coloursOfVertex[numOfVertices] = findColour(colour);
                 System.out.println(coloursOfVertex[numOfVertices]); //syntax
                 System.out.println(verticies[numOfVertices].id); //syntax
-                numOfVertices++;
+                
+                System.out.println(numOfVertices);//syntax
                 
             }
         }catch (IOException END){
@@ -224,22 +232,26 @@ public class GraphList {
         }
     }
     
-    private int indexOf(String station){
+    private int indexOf(GraphNode station){
 
         for(int i = 0; i < numOfVertices; i++){
-            if(verticies[i] != null && verticies[i].id.toLowerCase().equals(station.toLowerCase())){
+            if(verticies[i] == station ){
                 return i; //returns the index of the vertex with the same id
             }
         }
         return -1;  // returning -1 means the station is not in the array
     }
+    private int toIndex(String station, Collection<Edge> edges){
+        findEdge(station, edges);
+    }
     
     
-    public void DijkstrasAlgorithm(String start){
+    
+    public void DijkstrasAlgorithm(GraphNode start){
             int[] pathCost = new int[numOfVertices];
             boolean[] finalisedSet = new boolean[numOfVertices];
             int numFinalised = 0;
-        
+            GraphNode startStation = start;
             int station = indexOf(start);
             if(station == -1)return;
             for(int i = 0; i<numOfVertices; i ++){
@@ -248,7 +260,32 @@ public class GraphList {
             }
             
             PriorityQueue<Edge> foo = new PriorityQueue<Edge>();
-            foo.add(new Edge(start, null, 0f))
+            for(String colour : coloursOfVertex){
+                
+                foo.add(new Edge(startStation, colour,0f));}
+            pathCost[station] = 0;
+            headNode = null;
+            
+            while(numFinalised < numOfVertices){
+                if(foo.isEmpty())break;
+                //Processing the current vertex
+                Edge r = foo.poll();
+                int index = r.destination;
+                Edge v = verticies[index];
+                if(finalisedSet[index])continue;
+                finalisedSet[index] = true;
+                numFinalised++;
+
+                //Process its one-hop neigbours
+                Iterator<Edge> itr = v.edges.iterator();
+                while(itr.hasNext()){
+                    Edge temp = itr.next();
+                    int j = temp.toIndex;
+                    if(!finalisedSet[j]){
+                        int costEstimate = 
+                    }
+                }
+            }
         }   
     
     }
