@@ -108,7 +108,7 @@ public class Graph {
 
         System.out.println("Shortest path from " + start + " to " + end + " ( " + totalTime + " mins): ");
         for(int i = 0; i < path.size(); i++){
-            System.out.print(path.get(i));
+            System.out.print(path.get(i) );
             if( i < path.size() -1){
                 System.out.print(" -> ");
             }
@@ -130,7 +130,7 @@ public class Graph {
                     dataRows.add(section);
                 }   
             }   
-            System.out.println("Number of Edges read: " + dataRows.size() + "| From: " + filename);  //syntax
+            //System.out.println("Number of Edges read: " + dataRows.size() + "| From: " + filename);  //syntax
             
             for(String[] row : dataRows){
                 
@@ -146,8 +146,8 @@ public class Graph {
                 
                 
             }
-            System.out.println("Number of loaded Stations " + numOfStations + " stations");
-            System.out.println("Number of loaded Connections " + dataRows.size() + " connections");
+            //System.out.println("Number of loaded Stations " + numOfStations + " stations");  //syntax
+            //System.out.println("Number of loaded Connections " + dataRows.size() + " connections"); //syntax
         }catch (IOException END){
             System.err.println("Error reading file:" + END.getMessage());
         }
@@ -232,7 +232,7 @@ public class Graph {
 
             for(Edge edge : stations[currentIndex].edges){
                 int neighborIndex = edge.toIndex;
-                String lineColour = edge.lineColour;
+                
                 
                 if(!visited[neighborIndex]){
                     double newDistance = distance[currentIndex] + edge.time;
