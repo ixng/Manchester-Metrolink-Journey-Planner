@@ -99,7 +99,9 @@ public class Graph {
     
 
     //method to print the shortest length between the start Station and the end Station
-    public final void shortestLengthPrint(String start, String end){
+    //method to print path, given the returned list of strings from the shortest path method
+    
+    public final void shortestPathPrint(String start, String end){
         List<String> path = findShortestPath(start,end);
         if(path.isEmpty()){
             System.out.println("No path exists between " + start + " and " + end);
@@ -115,84 +117,54 @@ public class Graph {
         System.out.println();
     }
     //method to print path, given the returned list of strings from the shortest path method
-    public final void shortestPathPrint(List<String> ls){
-
-        if(ls.size() == 0)return; //checks if the list is empty
-
-        String printStr = "";
-        for(String s : ls){
-            printStr += s + " -> ";
-        }
-        printStr = printStr.substring(0,printStr.length());
-
-        System.out.println(printStr);
-
-
-
-    }
+    
 
     public void loadFromFile(String filename){
         
         try{
             List<String[]> dataRows = new ArrayList<>();
-        try(BufferedReader reader = new BufferedReader(new FileReader(filename))){
-            String line;
-            line = reader.readLine(); //skips the header
-            while ((line = reader.readLine()) != null){
-                String[] section = line.split(",");
-                dataRows.add(section);
+            try(BufferedReader reader = new BufferedReader(new FileReader(filename))){
+                String line;
+                line = reader.readLine(); //skips the header
+                while ((line = reader.readLine()) != null){
+                    String[] section = line.split(",");
+                    dataRows.add(section);
+                }   
+            }   
+            System.out.println("Number of Edges read: " + dataRows.size() + "| From: " + filename);  //syntax
             
-        }   
-    }
-            
-            
-            String [][] matrix = dataRows.toArray(new String[0][]);
-            
-
-            for(String[] row : matrix){
-                
-                
-                
+            for(String[] row : dataRows){
                 
                 String from = row[0].trim();
                 String to = row[1].trim();
                 String colour = row[2].trim();
                 Double time = Double.parseDouble(row[3].trim());
-                Station start = new Station(from);
-                Station end = new Station(to);
-                HashMap<Station,String> colourSet = new HashMap<>(); 
-                colourSet.put(start,colour);
-                colours.put(start,colourSet);
-                colourSet.put(end,colour);
-                colours.put(end,colourSet);
-                
-                
-                System.out.println("Adding start station: " + from); 
-                System.out.println("Adding end station: " + to); 
-                //colours.put(start,colour);
-                //colours.put(end,colour);
+                //add stations
                 addStation(from);
                 addStation(to);
+                //add connection between lines
                 addLine(from, to, time, colour);
-                System.out.println(numOfStations);
+                
                 
             }
+            System.out.println("Number of loaded Stations " + numOfStations + " stations");
+            System.out.println("Number of loaded Connections " + dataRows.size() + " connections");
         }catch (IOException END){
             System.err.println("Error reading file:" + END.getMessage());
         }
     }
     //------------------------------------------------End of Helper Methods------------------------------------------------//
 
-    public final boolean addStation(String station){
+    public boolean addStation(String station){
 
-        if(stationExists(station) == true )return false;
+        if(stationExists(station))return false;
 
         stations[numOfStations] = new Station(station);  //Adding new station object with the id as the Station
         numOfStations++;
         return true; 
     }
 
-    public final boolean addLine(String fromStation, String toStation, Double timeBetween, String Colour){
+    public boolean addLine(String fromStation, String toStation, double timeBetween, String Colour){
         int i = indexOf(fromStation);          //finding the index of the start station
         int j = indexOf(toStation);            //finding the index of the end Station
 
@@ -207,28 +179,26 @@ public class Graph {
             j = indexOf(toStation);
         }
 
-        LinkedHashSet<Edge> tempList = stations[i].edges;
-        Iterator<Edge> itr;
-        for(itr = tempList.iterator(); itr.hasNext();){
-            Edge e = itr.next();
+        for(Edge e : stations[i].edges){     //Check if edge already exists
             if(e.toIndex == j)return false;
         }
-
-        stations[i].edges.add(new Edge(j,timeBetween, Colour));
-        stations[j].edges.add(new Edge(i, timeBetween, Colour));
+        //Makes graph undirected 
+        stations[i].edges.add(new Edge(i, j,timeBetween, Colour));
+        stations[j].edges.add(new Edge(j, i, timeBetween, Colour));
         return true;
 
     }
     //method to find the shortest length between two stations
-    public final int shortestLength(String start, String end){
+    public double shortestLength(String start, String end){
 
         //finding the indicies of the start and the end 
-        int from = indexOf(start);
-        int to = indexOf(end);
+        int startIndex = indexOf(start);
+        int endIndex = indexOf(end);
 
-        if((from == -1) || (to == -1))throw new IllegalArgumentException("Illegal start or destination");
+        if((startIndex == -1) || (endIndex == -1))
+            throw new IllegalArgumentException("Illegal start or destination");
 
-        return dj[to];
+        //initialise data for Dijkstra's
 
     }
 
