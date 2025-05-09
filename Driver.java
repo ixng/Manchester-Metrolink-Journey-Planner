@@ -1,8 +1,9 @@
 import java.util.Scanner;
-import java.util.*;
+
+
 public class Driver {
     public static void main(String[] args){
-        GraphList graph = new GraphList();
+        TramMap graph = new TramMap();
         graph.loadFromFile("Metrolink_times_linecolour.csv");
         //graph.print();
         try(Scanner scanner = new Scanner(System.in)){
@@ -12,7 +13,6 @@ public class Driver {
         String start = scanner.nextLine().trim();
         System.out.println("Enter an end station");
         String end = scanner.nextLine().trim();
-
         if (graph.stationExists(start) == false) System.out.println("Invalid start Station. Please try again.");
         if (graph.stationExists(end) == false) System.out.println("Invalid end Station. Please try again.");
         if ((graph.stationExists(end) == false)&&(graph.stationExists(start) == false)) System.out.println("Both stations are invalid. Please try again.");
@@ -22,6 +22,8 @@ public class Driver {
         //int[] adjacent= graph.getNeighbours(start);
         //for(GraphNode adjacents : adjacent)System.out.println(adjacents.id);
         
+        //graph.DijkstrasAlgorithm(graph.findNode(start));
+
         
         }
 

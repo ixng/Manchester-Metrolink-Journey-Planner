@@ -6,22 +6,24 @@ public class GraphList {
     private GraphNode headNode;
     private GraphNode[] verticies;
     private int numOfVertices;
+    private int j;
     private int maxNum;
     private String[] coloursOfVertex;
     private List<String> colours = new ArrayList<>();
-    private GraphNode parent; //Pointer to parent Node
+     
     public class GraphNode implements Comparable<GraphNode>{
-        
+        private GraphNode parent; //Pointer to parent Node
         String id;
         LinkedHashSet<Edge> edges;
         GraphNode next;
         Float distance = Float.MAX_VALUE;
         List<GraphNode> shortestPath = new LinkedList<>();
         Map<GraphNode, Float> adjacentNodes = new HashMap<>();
-        
+        float cost;
         public GraphNode(String station){
             this.id = station;
             this.edges = new LinkedHashSet<>();
+            cost = 0f;
             
             }
         
@@ -40,6 +42,8 @@ public class GraphList {
         verticies = new GraphNode[maxNum];
         numOfVertices = 0;
         coloursOfVertex = new String[maxNum];
+        j = 0;
+        
     }
     
     public void addNode(String station){
@@ -53,10 +57,11 @@ public class GraphList {
     }
     public class Edge implements Comparator<Edge>,  Comparable<Edge>{
         GraphNode destination;
-        Float time;
+        Double time;
         String colour;
         int toIndex;
-        private Edge(GraphNode destination, String colour,Float time, int toIndex){
+        private double cost = 0f;
+        public Edge(GraphNode destination, String colour,Double time, int toIndex){
             this.destination = destination;
             this.time = time;
             this.colour = colour;
@@ -80,22 +85,25 @@ public class GraphList {
     
     
     
-    public void addEdge(String fromStation, String toStation, String colour, Float time){
+    public void addEdge(String fromStation, String toStation, String colour, Double time){
         GraphNode startNode = findNode(fromStation);
         GraphNode endNode = findNode(toStation);
+        
         if (startNode != null && endNode != null){
+            j++;
             addNode(fromStation);
             startNode = headNode;
-            startNode.edges.add(new Edge(startNode, colour, time));
+            startNode.edges.add(new Edge(startNode, colour, time,j));
             addNode(toStation);
             endNode = headNode;
-            endNode.edges.add(new Edge(endNode, colour, time));
-            if(stationExists(toStation) == true)
+            endNode.edges.add(new Edge(endNode, colour, time,j));
+            
+            System.out.println(j);
         }
         
     }
 
-    private GraphNode findNode(String station){
+    public GraphNode findNode(String station){
         GraphNode node = headNode;
             while(node != null){
                 if (node.id.equals(station)) return node;
@@ -155,7 +163,7 @@ public class GraphList {
                 String from = row[0].trim();
                 String to = row[1].trim();
                 String colour = row[2].trim();
-                Float time = Float.parseFloat(row[3].trim());
+                Double time = Double.parseDouble(row[3].trim());
                 if(stationExists(from) == false || stationExists(to) == false){
                     numOfVertices++;}
                 
@@ -225,7 +233,7 @@ public class GraphList {
         }
 
     
-    public void printSolution(int dist[]){
+    public void printSolution(Double dist[]){
         System.out.println("Node \t\t\t Distance from Start Station");
         for(int i = 0; i<numOfVertices; i++){
             System.out.println(verticies[i].id + "\t\t\t " + dist[i]);
@@ -248,30 +256,31 @@ public class GraphList {
     
     
     public void DijkstrasAlgorithm(GraphNode start){
-            int[] pathCost = new int[numOfVertices];
+            Double[] pathCost = new Double[numOfVertices];
             boolean[] finalisedSet = new boolean[numOfVertices];
             int numFinalised = 0;
             GraphNode startStation = start;
             int station = indexOf(start);
+            System.out.println("test");
             if(station == -1)return;
             for(int i = 0; i<numOfVertices; i ++){
                 finalisedSet[i]= false;
-                pathCost[i]= Integer.MAX_VALUE;
+                pathCost[i]= Double.MAX_VALUE;
             }
             
             PriorityQueue<Edge> foo = new PriorityQueue<Edge>();
             for(String colour : coloursOfVertex){
                 
-                foo.add(new Edge(startStation, colour,0f));}
-            pathCost[station] = 0;
+                foo.add(new Edge(startStation, colour,0d, station));}
+            pathCost[station] = 0d;
             headNode = null;
             
             while(numFinalised < numOfVertices){
                 if(foo.isEmpty())break;
                 //Processing the current vertex
                 Edge r = foo.poll();
-                int index = r.destination;
-                Edge v = verticies[index];
+                int index = r.toIndex;
+                GraphNode v = verticies[index];
                 if(finalisedSet[index])continue;
                 finalisedSet[index] = true;
                 numFinalised++;
@@ -282,12 +291,20 @@ public class GraphList {
                     Edge temp = itr.next();
                     int j = temp.toIndex;
                     if(!finalisedSet[j]){
-                        int costEstimate = 
+                        double costEstimate = pathCost[index] + temp.time;
+                        if(costEstimate < pathCost[j]){
+                            pathCost[j] = costEstimate;
+                            verticies[j].parent = v;
+                            
+                        }
+                        foo.add(new Edge(v,coloursOfVertex[j],pathCost[j],j));
                     }
                 }
             }
+            printSolution(pathCost);
+            System.out.println("test");
         }   
-    
+        
     }
 
          
