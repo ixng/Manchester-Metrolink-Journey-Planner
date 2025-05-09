@@ -12,16 +12,12 @@ public class Graph {
     private double[] distance;
     private boolean[] visited;      //set for finalised stations in dj algo
     private int[] previousStation;  //for tracking the path    
-    public LinkedHashMap<Station,HashMap<Station,String>> colours = new LinkedHashMap<>();
     public Station parent;
     
     public class Station{
         Station next;
         private String id;          //id for the station
         private LinkedHashSet<Edge> edges;  //adjacency list
-        //private Maps<Station,Integer> adjacentStations = new LinkedHashMap<>();
-        //public Station parent;
-        //public LinkedHashMap<Station,Set<String>> colours = new LinkedHashMap<>(); //colours list (for each station it has this colour)
         private Station(String id){
             this.id = id;
             this.edges = new LinkedHashSet<>();
@@ -33,10 +29,11 @@ public class Graph {
 
     private class Edge implements Comparable<Edge>{
         //This class implements a Comparable so that it can be added to the priority queue
-        private int fromIndex;
+        private int fromIndex; //index of Start
         private int toIndex; //index of destination
         private double time;  // time between stations
-        private String lineColour;
+        private String lineColour; //line colour
+        
         private Edge(int fromIndex,int toIndex, double time, String lineColour){
             this.fromIndex = fromIndex;
             this.toIndex = toIndex;
@@ -45,7 +42,7 @@ public class Graph {
         }
         @Override
         public int compareTo(Edge edge){
-            return Double.compare(this.time,edge.time);
+            return Double.compare(this.time, edge.time);
         }
             
         }
@@ -70,7 +67,7 @@ public class Graph {
 
     private int indexOf(String station){
         for(int i = 0; i < numOfStations; i++){
-            if((stations[i] != null) && (stations[i].id == station))return i; //returning the index of the building with the same id
+            if((stations[i] != null) && (stations[i].id.equals(station)))return i; //returning the index of the building with the same id
         }
         
         return -1; //returning -1 if the station is not in the array
@@ -101,18 +98,20 @@ public class Graph {
     //method to print the shortest length between the start Station and the end Station
     //method to print path, given the returned list of strings from the shortest path method
     
-    public final void shortestPathPrint(String start, String end){
-        List<String> path = findShortestPath(start,end);
+    public void printShortestPath(String start, String end){
+        List<String> path = findShortestPath(start, end);
         if(path.isEmpty()){
             System.out.println("No path exists between " + start + " and " + end);
-            return;
+            
     }
         double totalTime = shortestLength(start, end);
 
         System.out.println("Shortest path from " + start + " to " + end + " ( " + totalTime + " mins): ");
         for(int i = 0; i < path.size(); i++){
             System.out.print(path.get(i));
-            if( i < path.size() -1)System.out.print(" -> ");
+            if( i < path.size() -1){
+                System.out.print(" -> ");
+            }
         }
         System.out.println();
     }
@@ -138,7 +137,7 @@ public class Graph {
                 String from = row[0].trim();
                 String to = row[1].trim();
                 String colour = row[2].trim();
-                Double time = Double.parseDouble(row[3].trim());
+                double time = Double.parseDouble(row[3].trim());
                 //add stations
                 addStation(from);
                 addStation(to);
@@ -196,46 +195,81 @@ public class Graph {
         int endIndex = indexOf(end);
 
         if((startIndex == -1) || (endIndex == -1))
-            throw new IllegalArgumentException("Illegal start or destination");
+            throw new IllegalArgumentException("Illegal start or destination station");
+        //initialise data structures for Dijkstra's
+        distance = new double[numOfStations];
+        visited = new boolean[numOfStations];
+        previousStation = new int[numOfStations];
+
+        //track Line transfers
+        String[] previousLineColour = new String[numOfStations];
 
         //initialise data for Dijkstra's
+        for(int i = 0; i < numOfStations; i++){
+            distance[i] = Double.POSITIVE_INFINITY;
+            visited[i] = false;
+            previousStation[i] = -1;
+            previousLineColour[i] = null;
+        }
+        //Distance to start station is 0
+        distance[startIndex] = 0;
+        
+        PriorityQueue<Edge> priorityQueue = new PriorityQueue<>();
+        priorityQueue.add(new Edge(startIndex, startIndex, 0,""));
 
+        while(!priorityQueue.isEmpty()){
+            Edge currentStation = priorityQueue.poll();
+            int currentIndex = currentStation.toIndex;
+
+            //skip if visited
+            if(visited[currentIndex])continue;
+
+            //mark as visited
+            visited[currentIndex] = true;
+            
+            //break if reached end station
+            if(currentIndex == endIndex)break;
+
+            for(Edge edge : stations[currentIndex].edges){
+                int neighborIndex = edge.toIndex;
+                String lineColour = edge.lineColour;
+                
+                if(!visited[neighborIndex]){
+                    double newDistance = distance[currentIndex] + edge.time;
+                    if(!currentStation.lineColour.equals("") && !edge.lineColour.equals(currentStation.lineColour))newDistance +=2d;
+                    if(newDistance < distance[neighborIndex]){
+                        distance[neighborIndex] = newDistance;
+                        previousStation[neighborIndex] = currentIndex;
+                        priorityQueue.add(new Edge(currentIndex, neighborIndex, newDistance, edge.lineColour));
+                        
+                    }
+                }
+            }
+        }
+        return distance[endIndex];
     }
 
 
-    public final LinkedHashMap<String, String> shortestPath(String start,String end){
+    public List<String> findShortestPath(String start,String end){
 
         //getting indicies of the start and end stations
-        int from = indexOf(start);
-        int to = indexOf(end);
+        int startIndex = indexOf(start);
+        int endIndex = indexOf(end);
 
-        if((from == -1) || (to == -1) || (from == to))return null;
+        if((startIndex == -1) || (endIndex == -1))return new ArrayList<>();
 
+        //running dijkstra's to get shortest lenght
         shortestLength(start, end);
 
-        //creating initialising 2 lists
-        LinkedHashMap<String,String> tempList = new LinkedHashMap<String,String>();
-        LinkedHashMap<String,String> pathList = new LinkedHashMap<String,String>();
+        //creating|initialising a list to be the path
+        List<String> path = new ArrayList<>();
+        if(distance[endIndex] == Double.POSITIVE_INFINITY)return path;
 
-        Station endStation = stations[to];
-        Station traverse = endStation;
-
-        while(traverse != null){
-            for(Map.Entry<Station,Set<String>> colour : colours.entrySet())
-            Set<String> colourSet = colour.getValue();
-            tempList.put(traverse.id,colourSet);
-            traverse = traverse.parent;
+        for(int current = endIndex; current !=-1; current = previousStation[current]){
+            path.add(stations[current].id);
         }
-        List<Map.Entry<String, String>> entries = new ArrayList<>(tempList.entrySet());
-        Collections.reverse(entries);
-        for(Map.Entry<String,String> entry : entries){
-            pathList.put(entry.getKey(), entry.getValue());
+        Collections.reverse(path);
+        return path;
         }
-
-        return pathList;
-        
-
-        
-    }
 
 }
