@@ -1,5 +1,36 @@
 # Summer-project
+PROJECT OVERVIEW
+Journey planners can be used to find the optimal route between two (or more) given locations. They are
+widely used to plan journeys and can be based on one, or more, modes of transport. The route may be
+optimised based on different criteria; for example, the journey planner may output the fastest route, the
+cheapest route or even the route with fewest changes depending on the user’s preferences.
+For this coursework, you will develop a route planner for the Manchester Metrolink based on average journey
+times which are provided to you in a file Metrolink_times_linecolour.csv. Each line of the file represents a
+single connection between two stations and gives the starting station, final station, the transport line colour
+and the time to travel between the stations as: From ,To ,Line ,Time (mins). You should assume that it
+takes the same time to travel in the opposite direction. An example of the information provided on journey
+times is given below. Here, for example, you can interpret the second line as it takes 6 mins to travel from
+Bury to Radcliffe on the yellow line and it takes 6 mins to travel from Radcliffe to Bury on the yellow line.
 
+From ,To ,Line ,Time (mins)
+Bury,Radcliffe,yellow,6
+Brooklands,Sale,purple,1.5
+Sale,Dane Road,purple,1
+
+TASKS
+Your task is to develop a route planner for the Manchester Metrolink. An image of the network is given
+below for illustrative purposes only (note, not all lines are used in the provided file, and information in the
+file may not exactly match the figure).
+Your route planner should be based on the information and times in the provided file, not on any other
+timings or information. For testing your code, we will use a new file with stations and times. The format
+of this file will be the same as the one given for development, but specific information on station names and times may differ.
+The program should:
+• Read in information from the provided file to give station names and journey times between stations
+on different lines.
+• Provide an interface that enables a user to specify a valid start and end station for their journey.
+• Given a valid start and end station, compute a route between the two stations and output this route,
+including lines to travel on, journey time and changes.
+• Enable users to specify constraints for optimising the journey, e.g. fewest changes, shortest time.
 
 
 ## Getting started
