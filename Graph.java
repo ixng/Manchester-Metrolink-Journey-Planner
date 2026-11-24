@@ -238,7 +238,7 @@ public class Graph {
         }
         // Makes graph undirected by recording the connection each way
         stations.get(i).edges.add(new Edge(j, timeBetween, Colour));
-        stations.get(i).edges.add(new Edge(i, timeBetween, Colour));
+        stations.get(j).edges.add(new Edge(i, timeBetween, Colour));
         return true;
 
     }
