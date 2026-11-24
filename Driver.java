@@ -4,7 +4,6 @@ public class Driver {
     public static void main(String[] args) {
         Graph graph = new Graph(1000);
         graph.loadFromFile("Metrolink_times_linecolour.csv");
-        // graph.printGraph(); //syntax
         try (Scanner scanner = new Scanner(System.in)) {
 
             System.out.println("Welcome to the Metrolink Journey Planner!");

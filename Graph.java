@@ -8,14 +8,11 @@ public class Graph {
     private Station[] stations; // array for the stations on the map
     private int numOfStations; // count for the number of stations
     private int maxNumber;
-    PriorityQueue<Edge> dijkstraPQ; // Priority queue for Dijkstras algo
     private double[] distance;
     private boolean[] visited; // set for finalised stations in dj algo
     private int[] previousStation; // for tracking the path
-    public Station parent;
 
     public class Station {
-        Station next;
         private String id; // id for the station
         private LinkedHashSet<Edge> edges; // adjacency list
 
@@ -56,7 +53,6 @@ public class Graph {
         maxNumber = maximum;
         stations = new Station[maxNumber];
         numOfStations = 0;
-        dijkstraPQ = new PriorityQueue<>();
 
     }
     // ------------------------------------------------Helper
@@ -112,7 +108,7 @@ public class Graph {
         }
         double totalTime = distance[indexOf(end)];
 
-        System.out.println("Shortest path from " + start + " to " + end + " ( " + totalTime + " mins): ");
+        System.out.println("Shortest path from " + start + " to " + end + " ( " + totalTime + " mins ): ");
 
         for (int i = 0; i < path.size(); i++) {
             System.out.print(path.get(i));
@@ -216,14 +212,12 @@ public class Graph {
         previousStation = new int[numOfStations];
 
         // track Line transfers
-        String[] previousLineColour = new String[numOfStations];
 
         // initialise data for Dijkstra's
         for (int i = 0; i < numOfStations; i++) {
             distance[i] = Double.POSITIVE_INFINITY;
             visited[i] = false;
             previousStation[i] = -1;
-            previousLineColour[i] = null;
         }
         // Distance to start station is 0
         distance[startIndex] = 0;
