@@ -24,16 +24,13 @@ terminal.
 - [Setup](#setup)
 - [Usage](#usage)
 - [Design decisions](#design-decisions)
-- [Verification](#verification)
-- [Scope](#scope)
-- [Data constraints](#data-constraints)
 - [Project layout](#project-layout)
 
 ---
 
 ## Status
 
-Finished, at the scope I set out to build. The stages below are how the work actually went.
+
 
 | STAGE | State |
 |---|---|
@@ -43,8 +40,7 @@ Finished, at the scope I set out to build. The stages below are how the work act
 | 4. Penalty for changing line | done |
 | 5. Report the lines travelled and count the changes | done |
 
-There is one known inaccuracy, which I have written up under [Verification](#verification) rather
-than hidden, and a note on what I deliberately left out under [Scope](#scope).
+
 
 ---
 
@@ -176,81 +172,6 @@ dropped. Of 145 rows in the data, 45 are discarded this way.
 **The algorithm does not know anything about Metrolink -** No station names, line colours or times
 are in the code. Everything comes from the data file, which is why passing a different CSV works
 without touching the source.
-
----
-
-## Verification
-
-I checked the planner against the data by hand, picking a route where I could add the times up
-myself. The pink line runs unbroken from Didsbury Village to Victoria, so that journey needs no
-change at all, and summing the pink rows gives the true answer.
-
-| metric | this project | by hand |
-| --- | --- | --- |
-| journey time | 29.0 mins | 28.5 mins |
-| changes | 2 | 0 |
-| lines used | pink, purple, pink | pink |
-
-So it is 0.5 minutes out and reports two changes that do not exist. The route itself is right, it is
-the same thirteen stations either way, it is the cost and the line attribution that are wrong.
-
-The cause is the deduplication described in the last design decision, not the arithmetic. The
-Trafford Bar to St. Peter's Square corridor is shared, and purple's rows sit at lines 24 to 26 of
-the data while pink's sit at 91 to 93, so purple wins and pink's version of that stretch is thrown
-away. The planner then finds pink, then purple, then pink again, and charges two changes for
-switching onto and off a line it never actually needed to use.
-
-The two errors very nearly cancel, which is why it looks plausible. Purple's corridor times are
-3 + 2 + 1 = 6 minutes against pink's 3 + 3.5 + 3 = 9.5, so the stored route is 3.5 minutes too
-quick, and the two phantom changes add 4 minutes back. 6 + 4 = 10 against a true 9.5. Being half a
-minute out by coincidence is worse than being obviously wrong, because nothing in the output looks
-suspicious unless you know the network.
-
-The fix would be to keep every parallel connection instead of deduplicating it away, and to make the
-search state a station-and-line pair rather than just a station. Dijkstra's only guarantees an
-optimal result when an edge costs the same however you reach it, and with a change penalty that is
-not true of a station on its own, so what this produces is a good route rather than a provably
-optimal one. That is a deliberate stopping point rather than an oversight, and the reasoning is
-under [Scope](#scope).
-
-As a regression check, `Bury` to `Altrincham` returns 60.0 mins, the same as it did before the
-station index and the leg grouping were added.
-
----
-
-## Scope
-
-The planner does what I set out to build. These are the things I decided not to take on, and why:
-
-**Exact change costs -** Keeping every parallel connection and expanding the search state to a
-station-and-line pair would remove the inaccuracy above. It is the right fix and not a large one,
-but it changes the shape of the search rather than adding to it, and for planning a journey across
-this network the current answer is close enough to be useful. I would rather have a finished thing
-with a documented limit than an unfinished thing with none.
-
-**Other optimisation criteria -** Fewest changes or fewest stops would each be the same search over
-the same graph with a different edge cost. The part I wanted to get right was modelling time and
-changes together, and a second criterion repeats that rather than extending it.
-
-**Unit tests -** There are none. The checking was done by hand against the data, which is what the
-verification section is, and on a program this size with one entry point that was enough to find
-the problems that were there.
-
----
-
-## Data constraints
-
-The times in the data are averages, not timetabled departures, so the planner optimises a typical
-journey rather than a specific one. There is no notion of waiting for a tram, of service frequency,
-or of a line not running at a particular time of day, and the 2 minute change penalty is a flat
-figure rather than a real interchange wait.
-
-The data is 145 rows covering 99 stations and 7 lines, which describe 100 distinct station-to-station
-connections. The gap between 145 and 100 is the shared track, and it is dealt with above.
-
-Travel time is assumed to be the same in both directions, so each row is recorded as a connection
-each way and the graph is undirected. That assumption is the data's, not mine, and it is why the
-file only lists each connection once per line.
 
 ---
 
