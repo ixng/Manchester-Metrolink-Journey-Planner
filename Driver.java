@@ -1,9 +1,20 @@
 import java.util.Scanner;
 
 public class Driver {
+
+    private static final String DEFAULT_DATA_FILE = "Metrolink_times_linecolour.csv";
+
     public static void main(String[] args) {
-        Graph graph = new Graph(1000);
-        graph.loadFromFile("Metrolink_times_linecolour.csv");
+        String dataFile = (args.length > 0) ? args[0] : DEFAULT_DATA_FILE;
+
+        Graph graph = new Graph();
+        graph.loadFromFile(dataFile);
+
+        if (graph.stationCount() == 0) {
+            System.out.println("No network data loaded from " + dataFile);
+            System.out.println("Check the file path and try again.");
+            return;
+        }
         try (Scanner scanner = new Scanner(System.in)) {
 
             System.out.println("Welcome to the Metrolink Journey Planner!");

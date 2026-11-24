@@ -5,20 +5,25 @@ import java.util.*;
 
 public class Graph {
 
-    private Station[] stations; // array for the stations on the map
-    private int numOfStations; // count for the number of stations
-    private int maxNumber;
-    private double[] distance;
-    private boolean[] visited; // set for finalised stations in dj algo
-    private int[] previousStation; // for tracking the path
+    /** Minutes added to a journey for changing from one line to another. */
+    private static final double CHANGE_PENALTY_MINUTES = 2.0;
 
-    public class Station {
-        private String id; // id for the station
-        private LinkedHashSet<Edge> edges; // adjacency list
+    private final List<Station> stations = new ArrayList<>(); // holds every station where a station's index is its
+                                                              // position
+    private final Map<String, Integer> stationIndex = new HashMap<>(); // lowercase name -> index, for O(1) lookup
+
+    private double[] distance; // best known time to each station
+    private boolean[] visited; // stations whose shortest time is final
+    private int[] previousStation; // predecessor of each station on the best route
+    private String[] previousLine; // line colour used to arrive at each station
+
+    /** A station on the network, holding its own adjacency list. */
+    public static class Station {
+        private final String id;
+        private final LinkedHashSet<Edge> edges = new LinkedHashSet<>();
 
         private Station(String id) {
             this.id = id;
-            this.edges = new LinkedHashSet<>();
         }
 
         public String getStationID() {
@@ -26,35 +31,40 @@ public class Graph {
         }
     }
 
-    private class Edge implements Comparable<Edge> {
-        // This class implements a Comparable so that it can be added to the priority
-        // queue
-        private int fromIndex; // index of Start
-        private int toIndex; // index of destination
-        private double time; // time between stations
-        private String lineColour; // line colour
+    /** A tram connection from one station to an adjacent one. */
 
-        private Edge(int fromIndex, int toIndex, double time, String lineColour) {
-            this.fromIndex = fromIndex;
+    private class Edge {
+        private final int toIndex; // station at the far end
+        private final double time; // average journey time in minutes
+        private final String lineColour;
+
+        private Edge(int toIndex, double time, String lineColour) {
             this.toIndex = toIndex;
             this.time = time;
             this.lineColour = lineColour;
         }
 
-        @Override
-        public int compareTo(Edge edge) {
-            return Double.compare(this.time, edge.time);
+    }
+
+    /**
+     * One entry in Dijkstra's queue: a station, and the best cumulative time found
+     * to reach it.
+     */
+    private static class QueueEntry implements Comparable<QueueEntry> {
+        private final int stationIndex;
+        private final double timeSoFar;
+
+        private QueueEntry(int stationIndex, double timeSoFar) {
+            this.stationIndex = stationIndex;
+            this.timeSoFar = timeSoFar;
         }
 
+        @Override
+        public int compareTo(QueueEntry other) {
+            return Double.compare(this.timeSoFar, other.timeSoFar);
+        }
     }
 
-    public Graph(int maximum) {
-        // Initialisation
-        maxNumber = maximum;
-        stations = new Station[maxNumber];
-        numOfStations = 0;
-
-    }
     // ------------------------------------------------Helper
     // Methods------------------------------------------------//
 
@@ -62,36 +72,46 @@ public class Graph {
         return indexOf(station) != -1;
     }
 
+    /**
+     * Index of a station by name, case-insensitive, or -1 if the network has no
+     * such station.
+     */
     private int indexOf(String station) {
-        for (int i = 0; i < numOfStations; i++) {
-            if ((stations[i] != null) && (stations[i].id.equalsIgnoreCase(station)))
-                return i; // returning the index of the building with the same id
+        if (station == null) {
+            return -1; // returning -1 if the station is not in the array
         }
+        Integer index = stationIndex.get(station.trim().toLowerCase(Locale.ROOT));
+        return (index == null) ? -1 : index;
+    }
 
-        return -1; // returning -1 if the station is not in the array
+    /**
+     * The station's name as spelled in the data file, so output matches the
+     * network, not the typing.
+     */
+    private String canonicalName(String station) {
+        int i = indexOf(station);
+        return (i == -1) ? station : stations.get(i).id;
+    }
+
+    public int stationCount() {
+        return stations.size();
     }
 
     public void printGraph() {
         System.out.println("Network Graph: ");
-        for (int i = 0; i < numOfStations; i++) {
-            if (stations[i] != null) {
-                System.out.print(stations[i].id + ": "); // adding the id of the start station to the string
-                boolean firstEdge = true;
-                for (Edge e : stations[i].edges) { // Traversing through the linked list of edges
-                    if (!firstEdge) {
-                        System.out.print(", ");
-                    } else {
-                        firstEdge = false;
-                    }
-                    ;
-                    System.out.print(stations[e.toIndex].id + " ( " + e.lineColour + " , " + e.time + " mins )");
-                    // adding the colour of the edge to the string
+        for (Station station : stations) {
+            System.out.print(station.id + ": "); // adding the id of the start station to the string
+            boolean firstEdge = true;
+
+            for (Edge e : station.edges) { // Traversing through the linked list of edges
+                if (!firstEdge) {
+                    System.out.print(", ");
                 }
-                System.out.println();
+                firstEdge = false;
+                System.out.print(stations.get(e.toIndex).id + " (" + e.lineColour + ", " + e.time + " mins)");
             }
-
+            System.out.println();
         }
-
     }
 
     // method to print the shortest length between the start Station and the end
@@ -100,23 +120,52 @@ public class Graph {
     // path method
 
     public void printShortestPath(String start, String end) {
-        List<String> path = findShortestPath(start, end);
-        if (path.isEmpty()) {
-            System.out.println("No path exists between " + start + " and " + end);
+        int startIndex = indexOf(start);
+        int endIndex = indexOf(end);
+
+        if (startIndex == -1 || endIndex == -1) {
+            System.out.println("Unknown station: " + (startIndex == -1 ? start : end));
             return;
-
         }
-        double totalTime = distance[indexOf(end)];
 
-        System.out.println("Shortest path from " + start + " to " + end + " ( " + totalTime + " mins ): ");
+        shortestLength(start, end);
 
-        for (int i = 0; i < path.size(); i++) {
-            System.out.print(path.get(i));
-            if (i < path.size() - 1) {
-                System.out.print(" -> ");
+        if (distance[endIndex] == Double.POSITIVE_INFINITY) {
+            System.out.println("No route exists between " + canonicalName(start) + " and " + canonicalName(end));
+            return;
+        }
+
+        List<Integer> route = indexPath(endIndex);
+        if (route.size() == 1) {
+            System.out.println("Start and destination are the same station.");
+            return;
+        }
+
+        List<Leg> legs = legsFor(route);
+        int changes = legs.size() - 1;
+
+        System.out.println();
+        System.out.println(canonicalName(start) + "  ->  " + canonicalName(end));
+        System.out.printf("Journey time: %.1f mins   |   Changes: %d%n", distance[endIndex], changes);
+        System.out.println();
+
+        for (Leg leg : legs) {
+            String board = leg.stationNames.get(0);
+            String alight = leg.stationNames.get(leg.stationNames.size() - 1);
+            int stops = leg.stationNames.size() - 1;
+            System.out.printf("  %-10s %s  ->  %s   (%d %s)%n",
+                    leg.lineColour, board, alight, stops, stops == 1 ? "stop" : "stops");
+            if (leg.stationNames.size() > 2) {
+                System.out.println("             via " + String.join(", ",
+                        leg.stationNames.subList(1, leg.stationNames.size() - 1)));
             }
         }
+
+        List<String> allNames = new ArrayList<>();
+        for (int index : route)
+            allNames.add(stations.get(index).id);
         System.out.println();
+        System.out.println("Full route: " + String.join(" -> ", allNames));
     }
     // method to print path, given the returned list of strings from the shortest
     // path method
@@ -161,38 +210,35 @@ public class Graph {
     // Methods------------------------------------------------//
 
     public boolean addStation(String station) {
+        String name = station.trim();
+        String key = name.toLowerCase(Locale.ROOT);
+        if (stationIndex.containsKey(key)) {
+            return false; // already on the map
+        }
 
-        if (stationExists(station))
-            return false;
-
-        stations[numOfStations] = new Station(station); // Adding new station object with the id as the Station
-        numOfStations++;
+        stationIndex.put(key, stations.size());
+        stations.add(new Station(name));
         return true;
     }
 
     public boolean addLine(String fromStation, String toStation, double timeBetween, String Colour) {
+
+        addStation(fromStation); // doesn't do anything if station is already present
+        addStation(toStation);
+
         int i = indexOf(fromStation); // finding the index of the start station
         int j = indexOf(toStation); // finding the index of the end Station
 
         if (i == j)
             return false; // if both stations are the same then no reason to add the line
 
-        if (i == -1) { // case if start station doesnt exist on the map
-            addStation(fromStation);
-            i = indexOf(fromStation);
-        }
-        if (j == -1) {
-            addStation(toStation);
-            j = indexOf(toStation);
-        }
-
-        for (Edge e : stations[i].edges) { // Check if edge already exists
+        for (Edge e : stations.get(i).edges) { // Check if edge already exists
             if (e.toIndex == j)
                 return false;
         }
-        // Makes graph undirected
-        stations[i].edges.add(new Edge(i, j, timeBetween, Colour));
-        stations[j].edges.add(new Edge(j, i, timeBetween, Colour));
+        // Makes graph undirected by recording the connection each way
+        stations.get(i).edges.add(new Edge(j, timeBetween, Colour));
+        stations.get(i).edges.add(new Edge(i, timeBetween, Colour));
         return true;
 
     }
@@ -204,14 +250,15 @@ public class Graph {
         int startIndex = indexOf(start);
         int endIndex = indexOf(end);
 
-        if ((startIndex == -1) || (endIndex == -1))
+        if ((startIndex == -1) || (endIndex == -1)) {
             throw new IllegalArgumentException("Illegal start or destination station");
+        }
         // initialise data structures for Dijkstra's
+        int numOfStations = stations.size();
         distance = new double[numOfStations];
         visited = new boolean[numOfStations];
         previousStation = new int[numOfStations];
-
-        // track Line transfers
+        previousLine = new String[numOfStations];
 
         // initialise data for Dijkstra's
         for (int i = 0; i < numOfStations; i++) {
@@ -222,37 +269,45 @@ public class Graph {
         // Distance to start station is 0
         distance[startIndex] = 0;
 
-        PriorityQueue<Edge> priorityQueue = new PriorityQueue<>();
-        priorityQueue.add(new Edge(startIndex, startIndex, 0, ""));
+        PriorityQueue<QueueEntry> priorityQueue = new PriorityQueue<>();
+        priorityQueue.add(new QueueEntry(startIndex, 0));
 
         while (!priorityQueue.isEmpty()) {
-            Edge currentStation = priorityQueue.poll();
-            int currentIndex = currentStation.toIndex;
+            int currentIndex = priorityQueue.poll().stationIndex;
 
             // skip if visited
-            if (visited[currentIndex])
+            if (visited[currentIndex]) {
                 continue;
-
+            }
             // mark as visited
             visited[currentIndex] = true;
 
             // break if reached end station
-            if (currentIndex == endIndex)
+            if (currentIndex == endIndex) {
                 break;
+            }
 
-            for (Edge edge : stations[currentIndex].edges) {
-                int neighborIndex = edge.toIndex;
+            for (Edge edge : stations.get(currentIndex).edges) {
+                int neighbourIndex = edge.toIndex;
+                if (visited[neighbourIndex]) {
+                    continue;
+                }
+                double newDistance = distance[currentIndex] + edge.time;
 
-                if (!visited[neighborIndex]) {
-                    double newDistance = distance[currentIndex] + edge.time;
-                    if (!currentStation.lineColour.equals("") && !edge.lineColour.equals(currentStation.lineColour))
-                        newDistance += 2d;
-                    if (newDistance < distance[neighborIndex]) {
-                        distance[neighborIndex] = newDistance;
-                        previousStation[neighborIndex] = currentIndex;
-                        priorityQueue.add(new Edge(currentIndex, neighborIndex, newDistance, edge.lineColour));
+                // changing line costs time, so charge for it
+                String arrivedOnLine = previousLine[currentIndex];
 
-                    }
+                if (arrivedOnLine != null && !arrivedOnLine.equals(edge.lineColour)) {
+                    newDistance += CHANGE_PENALTY_MINUTES;
+                }
+
+                // checks if changing line makes it a quicker journey
+                if (newDistance < distance[neighbourIndex]) {
+
+                    distance[neighbourIndex] = newDistance;
+                    previousStation[neighbourIndex] = currentIndex;
+                    previousLine[neighbourIndex] = edge.lineColour;
+                    priorityQueue.add(new QueueEntry(neighbourIndex, newDistance));
                 }
             }
         }
@@ -268,19 +323,60 @@ public class Graph {
         if ((startIndex == -1) || (endIndex == -1))
             return new ArrayList<>();
 
-        // running dijkstra's to get shortest lenght
+        // running dijkstra's to get shortest length
         shortestLength(start, end);
 
-        // creating|initialising a list to be the path
+        // creating/initialising a list to be the path
         List<String> path = new ArrayList<>();
+
+        // if the route doesn't exist
         if (distance[endIndex] == Double.POSITIVE_INFINITY)
             return path;
 
-        for (int current = endIndex; current != -1; current = previousStation[current]) {
-            path.add(stations[current].id);
+        for (int index : indexPath(endIndex)) {
+            path.add(stations.get(index).id);
         }
-        Collections.reverse(path);
         return path;
     }
 
+    /** Station indices along the best route, in travel order. */
+    private List<Integer> indexPath(int endIndex) {
+        List<Integer> route = new ArrayList<>();
+        for (int current = endIndex; current != -1; current = previousStation[current]) {
+            route.add(current);
+        }
+        Collections.reverse(route);
+        return route;
+    }
+
+    /**
+     * Splits a route into stretches travelled on a single line without changing.
+     */
+    private List<Leg> legsFor(List<Integer> route) {
+        List<Leg> legs = new ArrayList<>();
+        for (int pos = 1; pos < route.size(); pos++) {
+            String line = previousLine[route.get(pos)];
+            Leg current = legs.isEmpty() ? null : legs.get(legs.size() - 1);
+            if (current == null || !line.equals(current.lineColour)) {
+                current = new Leg(line, stations.get(route.get(pos - 1)).id);
+                legs.add(current);
+            }
+            current.stationNames.add(stations.get(route.get(pos)).id);
+        }
+        return legs;
+    }
+
+    /**
+     * A stretch of the journey on one line: boarding station first, alighting
+     * station last.
+     */
+    private static class Leg {
+        private final String lineColour;
+        private final List<String> stationNames = new ArrayList<>();
+
+        private Leg(String lineColour, String boardingStation) {
+            this.lineColour = lineColour;
+            this.stationNames.add(boardingStation);
+        }
+    }
 }
