@@ -1,124 +1,136 @@
-# Summer-project
-PROJECT OVERVIEW
-Journey planners can be used to find the optimal route between two (or more) given locations. They are
-widely used to plan journeys and can be based on one, or more, modes of transport. The route may be
-optimised based on different criteria; for example, the journey planner may output the fastest route, the
-cheapest route or even the route with fewest changes depending on the user’s preferences.
-For this coursework, you will develop a route planner for the Manchester Metrolink based on average journey
-times which are provided to you in a file Metrolink_times_linecolour.csv. Each line of the file represents a
-single connection between two stations and gives the starting station, final station, the transport line colour
-and the time to travel between the stations as: From ,To ,Line ,Time (mins). You should assume that it
-takes the same time to travel in the opposite direction. An example of the information provided on journey
-times is given below. Here, for example, you can interpret the second line as it takes 6 mins to travel from
-Bury to Radcliffe on the yellow line and it takes 6 mins to travel from Radcliffe to Bury on the yellow line.
+# Manchester Metrolink Journey Planner
 
+A route planner for the Manchester Metrolink tram network, written in Java with no external
+dependencies. Given a start and end station, it computes the fastest route across the network
+using Dijkstra's shortest-path algorithm — accounting for the time cost of changing lines.
+
+## Overview
+
+The Metrolink network is modelled as an undirected weighted graph: stations are vertices, and
+the tram connections between them are edges weighted by average journey time in minutes.
+
+The planner:
+
+- loads the network from a CSV file of station-to-station connections
+- builds an adjacency-list graph of 99 stations and 145 connections across 7 lines
+- runs Dijkstra's algorithm to find the lowest-total-time route between any two stations
+- adds a **2-minute penalty whenever the route changes from one line to another**, so a route
+  that stays on a single line can beat a nominally quicker one that requires a change
+
+That last point is the part worth highlighting. A plain shortest-path search treats a change of
+line as free, which produces routes that look fast on paper but are slower in practice. Tracking
+which line was used to arrive at each station — and charging for switching — produces noticeably
+more realistic journeys.
+
+## How it works
+
+**Graph construction.** Each row of the CSV is one connection. Journey time is assumed to be the
+same in both directions, so every row inserts two directed edges (`A→B` and `B→A`), making the
+graph effectively undirected. Each station holds its own adjacency list of outgoing edges, and
+duplicate connections are rejected on insert.
+
+**Shortest path.** Dijkstra's algorithm, using a `PriorityQueue` ordered by cumulative journey
+time. The search keeps three parallel arrays: the best known time to each station, a visited set
+of stations whose shortest time is already final, and a predecessor array used to rebuild the
+route once the destination is reached. Each edge also carries its line colour, which is compared
+against the colour used to reach the current station to decide whether the change penalty applies.
+
+**Route reconstruction.** Walking the predecessor array backwards from the destination and
+reversing the result gives the ordered list of stations to travel through.
+
+## The network data
+
+`Metrolink_times_linecolour.csv` holds one connection per row:
+
+```
 From ,To ,Line ,Time (mins)
 Bury,Radcliffe,yellow,6
 Brooklands,Sale,purple,1.5
 Sale,Dane Road,purple,1
-
-TASKS
-Your task is to develop a route planner for the Manchester Metrolink. An image of the network is given
-below for illustrative purposes only (note, not all lines are used in the provided file, and information in the
-file may not exactly match the figure).
-Your route planner should be based on the information and times in the provided file, not on any other
-timings or information. For testing your code, we will use a new file with stations and times. The format
-of this file will be the same as the one given for development, but specific information on station names and times may differ.
-The program should:
-• Read in information from the provided file to give station names and journey times between stations
-on different lines.
-• Provide an interface that enables a user to specify a valid start and end station for their journey.
-• Given a valid start and end station, compute a route between the two stations and output this route,
-including lines to travel on, journey time and changes.
-• Enable users to specify constraints for optimising the journey, e.g. fewest changes, shortest time.
-
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://scc-source.lancs.ac.uk/gitau/summer-project.git
-git branch -M main
-git push -uf origin main
 ```
 
-## Integrate with your tools
+So the second row reads as: it takes 6 minutes to travel between Bury and Radcliffe on the yellow
+line, in either direction.
 
-- [ ] [Set up project integrations](https://scc-source.lancs.ac.uk/gitau/summer-project/-/settings/integrations)
+The included dataset covers 145 connections across seven lines:
 
-## Collaborate with your team
+| Line | Connections |
+|------------|----|
+| pink | 32 |
+| lightblue | 27 |
+| green | 24 |
+| darkblue | 24 |
+| purple | 16 |
+| yellow | 14 |
+| red | 8 |
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Times are averages rather than timetabled departures, so the planner optimises typical journey
+duration, not a specific departure. The loader trims surrounding whitespace, so the padded column
+headers in the file are handled without special-casing.
 
-## Test and Deploy
+## Requirements
 
-Use the built-in continuous integration in GitLab.
+A Java Development Kit, version 17 or newer. Developed and tested against OpenJDK 21. There are no
+libraries, build files or package managers to install.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+## Running it
 
-***
+Compile the two source files:
 
-# Editing this README
+```bash
+javac Graph.java Driver.java
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Then run the planner:
 
-## Suggestions for a good README
+```bash
+java Driver
+```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Run it from the project root — the data file is loaded by relative path, so the CSV needs to be in
+the working directory.
 
-## Name
-Choose a self-explaining name for your project.
+Station names must match the dataset, including punctuation: `Besses o'th' Barn`,
+`Deansgate/Castlefield`, `St. Peter's Square`.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Example
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```
+Welcome to the Metrolink Journey Planner!
+Enter a start station
+Didsbury Village
+Enter an end station
+Victoria
+Would you like the shortest route between the stations? Yes/No
+yes
+Shortest path from Didsbury Village to Victoria ( 29.0 mins):
+Didsbury Village -> West Didsbury -> Burton Road -> Withington -> St Werburgh's Road -> Chorlton
+-> Firswood -> Trafford Bar -> Cornbrook -> Deansgate/Castlefield -> St. Peter's Square
+-> Exchange Square -> Victoria
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## Project structure
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+| File | Purpose |
+|------|---------|
+| `Graph.java` | The engine — graph structure, CSV loading, Dijkstra's algorithm, path reconstruction |
+| `Driver.java` | Terminal interface: prompts for stations and prints the resulting route |
+| `Metrolink_times_linecolour.csv` | Network data — station connections, line colours and journey times |
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## Design notes
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Dijkstra's algorithm runs in O(E log V) time here, dominated by priority-queue operations. Station
+lookup by name is currently a linear scan over the station array, which is irrelevant at this
+network's size but would be the first thing to change for a substantially larger network.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+The algorithm is kept independent of the dataset: the planner reads whatever network the CSV
+describes, so swapping in different stations, lines or journey times requires no code changes.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+## Possible improvements
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+- Report the line colours and change points in the output, not just the station sequence
+- Alternative optimisation criteria: fewest changes, fewest stops
+- Multi-stop journeys with intermediate waypoints
+- Step-free and accessibility-aware routing
+- Real timetable data in place of average times, enabling departure-specific planning
+- A graphical or web front end in place of the terminal prompts
